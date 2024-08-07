@@ -1,0 +1,14 @@
+---
+# playbooks file for deploying docker
+
+- hosts: all
+  become: yes
+  roles:
+    - common
+    - uptimekuma
+    - nginx
+    # - apache
+    # - php
+    # - mysql
+    # - bitrix
+    # - phpmyadmin

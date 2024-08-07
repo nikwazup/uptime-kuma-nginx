@@ -1,0 +1,6 @@
+# main.yml
+ - name: Run common tasks
+   import_tasks: prod.yml
+
+#  - name: Run test tasks
+#    import_tasks: test.yml

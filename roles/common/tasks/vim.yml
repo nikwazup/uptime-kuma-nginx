@@ -1,0 +1,5 @@
+# file: roles/common/tasks/vim.yml
+- name: Vim install 
+  apt: 
+    name: vim 
+    state: present

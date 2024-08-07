@@ -1,0 +1,65 @@
+map $sent_http_content_type $expires {
+    "text/html"                 epoch;
+    "text/html; charset=utf-8"  epoch;
+    default                     off;
+}
+
+server {
+    listen    80;
+
+    server_name  {{ server_name_front }};
+
+    access_log  /var/log/nginx/{{ server_name_front }}-access.log;
+    error_log  /var/log/nginx/{{ server_name_front }}-error.log error;
+
+    gzip on;
+    gzip_comp_level    5;
+    gzip_min_length    256;
+    gzip_vary          on;
+
+    gzip_types
+    application/atom+xml
+    application/javascript
+    application/json
+    application/ld+json
+    application/manifest+json
+    application/rss+xml
+    application/vnd.geo+json
+    application/vnd.ms-fontobject
+    application/x-font-ttf
+    application/x-web-app-manifest+json
+    application/xhtml+xml
+    application/xml
+    font/opentype
+    font/woff2
+    image/bmp
+    image/svg+xml
+    image/x-icon
+    text/cache-manifest
+    text/css
+    text/plain
+    text/vcard
+    text/vnd.rim.location.xloc
+    text/vtt
+    text/x-component
+    text/x-cross-domain-policy;
+    # text/html is always compressed by gzip module
+    
+    location /storage/ {
+        try_files $uri $uri/ @backend;
+    }
+    
+    location / {
+        expires $expires;
+
+        proxy_redirect                      off;
+        proxy_set_header Host               $host;
+        proxy_set_header X-Real-IP          $remote_addr;
+        proxy_set_header X-Forwarded-For    $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto  $scheme;
+        proxy_read_timeout          1m;
+        proxy_connect_timeout       1m;
+        proxy_pass                          http://127.0.0.1:3001; # set the address of the Node.js instance here
+    }
+    
+}

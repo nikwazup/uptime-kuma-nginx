@@ -1,0 +1,29 @@
+---
+# Let's Encrypt settings
+# letsencrypt_email: nikwazup@gmail.com
+
+# group_vars/apps.yml
+
+server_name_front : "mids-uptime.web-lightnings.ru"
+
+
+# mysql_query_cache_size: 32M
+# mysql_tmp_table_size: 50M
+# mysql_thread_cache_size: 20
+
+#fillament user
+
+# fillament_user_back: nikwazup@gmail.com
+# fillament_user_back_pass: YourSecurePassword
+
+# fillament_user_back_dev: nikwazup@gmail.com
+# fillament_user_back_pass_dev: YourSecurePassword
+
+# User for VPS
+system_user:
+  user_login: deployer
+  user_password: pwd
+
+system_user2:
+  user_login: site-2.ru
+  user_password: pwd

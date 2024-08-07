@@ -1,0 +1,111 @@
+- name: Install Nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+  become: yes
+
+- name: Update project's permissions 
+  ansible.builtin.shell:
+    cmd: mkdir -p nginx_ansible
+    chdir: /home/deployer/
+  become: yes
+  become_user: deployer
+
+- name: Copy Nginx files to the virtual machine
+  ansible.builtin.copy:
+    src: "./roles/nginx/"
+    dest: "/home/deployer/nginx_ansible/"
+    owner: deployer
+    group: deployer
+    mode: '0755'
+  become: yes
+  become_user: deployer
+
+- name: Update project's permissions 
+  ansible.builtin.shell:
+    cmd: cp nginx.conf.j2 /etc/nginx/
+    chdir: /home/deployer/nginx_ansible/files/
+  become: yes
+  become_user: root
+
+- name: Copy Nginx configuration files
+  ansible.builtin.template:
+    src: nginx-virtualhost-frontend-ssr-production.conf.j2
+    dest: /etc/nginx/conf.d/{{ server_name_front }}.conf
+  become: yes
+  become_user: root
+
+- name: reload configs after uploads
+  ansible.builtin.shell:
+    cmd: nginx -s reload
+  become_user: root
+
+- name: Install Certbot
+  ansible.builtin.apt:
+    name: certbot
+    state: present
+
+- name: Obtain SSL certificates with Certbot
+  ansible.builtin.command: >
+    certbot certonly --nginx -d {{ server_name_front }}
+  become_user: root
+
+- name: Copy Nginx configuration files (SSL)
+  ansible.builtin.template:
+    src: nginx_virtualhost-frontend-ssr-ssl.conf.j2
+    dest: "/etc/nginx/conf.d/{{ server_name_front }}.conf"
+  become_user: root
+
+- name: Copy Nginx configuration files
+  ansible.builtin.template:
+    src: nginx_virtualhost-frontend-ssr-ssl.conf.j2
+    dest: /etc/nginx/conf.d/{{ server_name_front }}.conf
+  become: yes
+  become_user: root
+
+- name: reload configs after uploads
+  ansible.builtin.shell:
+    cmd: nginx -s reload
+  become_user: root
+
+- name: Add Certbot renewal to crontab
+  ansible.builtin.lineinfile:
+    path: /etc/crontab
+    line: "0 0 * * 1 certbot renew --quiet --post-hook 'systemctl reload nginx'"
+    create: yes
+  become: yes
+  become_user: root
+
+# - name: croncomands
+#   cmd: sudo echo "0 0 * * 1 certbot renew --quiet --post-hook 'systemctl reload nginx'" | sudo tee -a /etc/crontab > /dev/null
+
+# - name: Copy Nginx configuration files
+#   ansible.builtin.shell:
+#     cmd: cp nginx-virtualhost-backend-production.conf.j2 /etc/nginx/conf.d/{{ server_name_back }}.conf
+#     chdir: /home/deployer/nginx_ansible/templates/
+#   become: yes
+#   become_user: root
+
+# - name: Copy Nginx configuration files FRONT prod
+#   template:
+#     src: nginx-virtualhost-frontend-ssr-develop.conf.j2
+#     dest: /etc/nginx/conf.d/{{ server_name_front }}.conf
+#     owner: root
+#     group: root
+#     mode: 0644
+
+# - name: Copy Nginx configuration files FRONT dev
+#   template:
+#     src: nginx-virtualhost-frontend-ssr-develop.conf.j2
+#     dest: /etc/nginx/conf.d/{{ server_name_front_dev }}.conf
+#     owner: root
+#     group: root
+#     mode: 0644    
+
+# - name: Copy Nginx configuration files FRONT dev
+#   template:
+#     src: nginx-virtualhost-backend-production.conf.j2
+#     dest: /etc/nginx/conf.d/{{ server_name_back }}.conf
+#     owner: root
+#     group: root
+#     mode: 0644       

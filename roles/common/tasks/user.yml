@@ -1,0 +1,87 @@
+ - name: Passlib install for htpassword and vps user create.
+   tags: system
+   apt: 
+    pkg: python3-passlib
+    state: present
+
+ - name: Create a login user for your VPS
+   tags: system
+   with_dict: "{{ system_user }}"
+   user:
+    name: "{{ system_user.user_login }}"
+    password: "{{ system_user.user_password | password_hash('sha512') }}"
+    groups: # Empty by default, here we give it some groups
+     - sudo
+     - www-data
+    state: present
+    shell: /bin/bash       # Defaults to /bin/bash
+    system: no             # Defaults to no
+    createhome: yes        # Defaults to yes
+    home: /home/{{ system_user.user_login }}  # Defaults to /home/<username>
+
+ - name: Create .ssh folder for VPS user
+   tags: system
+   with_dict: "{{ system_user }}"
+   file:
+    path: /home/{{ system_user.user_login }}/.ssh
+    state: directory
+    owner: "{{ system_user.user_login }}"
+    group: "{{ system_user.user_login }}"
+    mode: 0700
+
+ - name: Generate SSH key id_rsa for CI/CD
+   tags: system
+   with_dict: "{{ system_user }}"
+   openssh_keypair:
+      path: "/home/{{ system_user.user_login }}/.ssh/id_rsa"
+      owner: "{{ system_user.user_login }}"
+      group: "{{ system_user.user_login }}"
+      type: rsa
+      size: 4096
+      state: present
+      force: no
+
+ - name: Fix owner of the generated pub key for CI/CD
+   tags: system
+   with_dict: "{{ system_user }}"
+   file:
+     path: /home/{{ system_user.user_login }}/.ssh/id_rsa.pub
+     owner: "{{ system_user.user_login }}"
+     group: "{{ system_user.user_login }}"
+
+ - name: Create athorized_keys file.
+   tags: system
+   with_dict: "{{ system_user }}"
+   file:
+      path: /home/{{ system_user.user_login }}/.ssh/authorized_keys
+      state: touch
+      mode: 0600
+      owner: "{{ system_user.user_login }}"
+      group: "{{ system_user.user_login }}"
+    
+ - name: Append pub key in to authorized_keys.
+   tags: system
+   with_dict: "{{ system_user }}"
+   become_user: "root"
+   become: true
+   run_once: true
+   shell: cat "/home/{{ system_user.user_login }}/.ssh/id_rsa.pub" >> "/home/{{ system_user.user_login }}/.ssh/authorized_keys" 
+
+ - name: Install ACL for deployer.
+   tags: system
+   apt: 
+    name: acl
+    state: present
+
+ - name: Enable ssh auth without keys.
+   tags: system
+   lineinfile:
+      path: /etc/ssh/sshd_config
+      regexp: '^#?PasswordAuthentication'
+      line: PasswordAuthentication yes
+
+ - name: Restart sshd
+   tags: system
+   service:
+      name: ssh 
+      state: restarted

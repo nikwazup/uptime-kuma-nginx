@@ -1,0 +1,60 @@
+# file: roles/common/tasks/main.yml
+- name: Upgrade all packages
+  apt: 
+   upgrade: full
+   update_cache: yes
+  when: ansible_distribution == 'Ubuntu' or ansible_distribution == 'Debian'
+
+- name: Make sure git is installed
+  tags: git
+  apt: 
+    name: git
+    state: present
+  when: ansible_distribution == 'Ubuntu' or ansible_distribution == 'Debian'
+
+- name: Make sure unzip is installed
+  tags: unzip
+  apt: 
+    name: unzip 
+    state: present
+  when: ansible_distribution == 'Ubuntu' or ansible_distribution == 'Debian'
+
+- name: Remove require tty
+  lineinfile:
+    dest: /etc/sudoers
+    line: 'Defaults    requiretty'
+    state: absent
+
+- include: cron-apt.yml
+  when: ansible_distribution == 'Ubuntu' or ansible_distribution == 'Debian'
+- include: swap.yml
+  when: enable_swap|default(false)|bool == true
+- include: user.yml
+- include: vim.yml
+
+- name: Ensure /var/www directory exists
+  ansible.builtin.file:
+    path: /var/www/
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  become: yes
+
+- name: Ensure /var/www/logs directory exists
+  ansible.builtin.file:
+    path: /var/www/logs/
+    state: directory
+    mode: '0777'
+    owner: root
+    group: root
+  become: yes
+
+- name: Set permissions for /var/www directory to deployer user
+  ansible.builtin.file:
+    path: /var/www/
+    state: directory
+    owner: deployer
+    group: deployer
+    mode: '0755'
+  become: yes

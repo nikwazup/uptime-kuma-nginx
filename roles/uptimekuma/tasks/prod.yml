@@ -1,0 +1,79 @@
+---
+# tasks file for docker
+
+- name: Install required system packages
+  apt:
+    name: ['apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common', 'gnupg-agent']
+    update_cache: yes
+
+- name: Update project's permissions 
+  ansible.builtin.shell:
+    cmd: mkdir -p uptimekuma_ansible
+    chdir: /home/deployer/
+  become: yes
+  become_user: deployer
+
+- name: Copy uptimekuma files to the virtual machine
+  ansible.builtin.copy:
+    src: "./roles/uptimekuma/"
+    dest: "/home/deployer/uptimekuma_ansible/"
+    owner: deployer
+    group: deployer
+    mode: '0755'
+  become: yes
+  become_user: deployer
+
+- name: Add Docker GPG key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker APT repository
+  apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+
+- name: Install Docker Engine
+  apt:
+    name: docker-ce
+    update_cache: yes
+    state: latest
+
+- name: Install Docker Compose
+  vars:
+    docker_compose_version: "1.29.2"
+    docker_compose_binary_url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-{{ 'Linux' }}-{{ 'x86_64' }}"
+  get_url:
+    url: "{{ docker_compose_binary_url }}"
+    dest: /usr/local/bin/docker-compose
+    mode: 'u+x,g+x'
+
+
+- name: Ensure Docker service is running
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Add 'deployer' user to 'docker' group
+  ansible.builtin.user:
+    name: deployer
+    groups: docker
+    append: yes
+
+- name: clone uptime kuma 
+  shell: cd /home/deployer && sudo git clone https://github.com/louislam/uptime-kuma.git -b 1.23.X 
+
+# - name: clone uptime kuma 
+#   shell: sudo cp /home/deployer/uptimekuma_ansible/files/monitor.js /home/deployer/uptime-kuma/server/model/
+- name: create directory for volume 
+  shell: sudo mkdir /home/deployer/uptime-kuma/docker/uptime-kuma-files/
+
+- name: cp file to uptime-files 
+  shell: sudo cp /home/deployer/uptimekuma_ansible/files/monitor.js /home/deployer/uptime-kuma/docker/uptime-kuma-files/
+
+- name: cp file to docker-compose
+  shell: sudo cp /home/deployer/uptimekuma_ansible/files/docker-compose.yml /home/deployer/uptime-kuma/docker/
+
+- name: docker compose up
+  shell: cd /home/deployer/uptime-kuma/docker && sudo docker-compose up -d

@@ -1,0 +1,18 @@
+[all]
+192.168.50.2 ansible_ssh_port=22 ansible_ssh_user=vagrant
+
+[webservers]
+192.168.50.2 ansible_ssh_port=22 ansible_ssh_user=vagrant
+
+[monitoringservers]
+192.168.50.2 ansible_ssh_port=22 ansible_ssh_user=vagrant
+
+[queueservers]
+192.168.50.2 ansible_ssh_port=22 ansible_ssh_user=vagrant
+
+[postgresqlservers]
+192.168.50.2 ansible_ssh_port=22 ansible_ssh_user=vagrant
+
+[minioservers]
+192.168.50.2 ansible_ssh_port=22 ansible_ssh_user=vagrant
+
